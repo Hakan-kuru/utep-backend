@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: utep-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: utep
+      POSTGRES_USER: utep
+      POSTGRES_PASSWORD: utep_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - utep_postgres_data:/var/lib/postgresql
+
+volumes:
+  utep_postgres_data:

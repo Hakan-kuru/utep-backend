@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider        = "prisma-client"
+  output          = "../generated/prisma"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -92,7 +93,7 @@ model ClubMember {
   user User @relation(fields: [userId], references: [id])
   club Club @relation(fields: [clubId], references: [id])
 
-  @@unique([userId, clubId])
+  @@unique([userId, clubId], where: { leftAt: null })
   @@index([clubId, leftAt])
 }
 

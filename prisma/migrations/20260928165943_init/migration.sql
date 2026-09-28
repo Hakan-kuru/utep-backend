@@ -1,4 +1,7 @@
 -- CreateEnum
+CREATE TYPE "SystemRole" AS ENUM ('USER', 'ADMIN');
+
+-- CreateEnum
 CREATE TYPE "ClubMemberRole" AS ENUM ('PRESIDENT', 'VICE_PRESIDENT', 'MANAGER');
 
 -- CreateEnum
@@ -20,10 +23,12 @@ CREATE TYPE "AttendanceStatus" AS ENUM ('ATTENDED', 'NOT_ATTENDED');
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "universityId" TEXT NOT NULL,
+    "departmentId" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
     "studentNumber" TEXT,
+    "systemRole" "SystemRole" NOT NULL DEFAULT 'USER',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -34,6 +39,7 @@ CREATE TABLE "User" (
 CREATE TABLE "University" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "University_pkey" PRIMARY KEY ("id")
 );
@@ -59,6 +65,7 @@ CREATE TABLE "Department" (
 -- CreateTable
 CREATE TABLE "Club" (
     "id" TEXT NOT NULL,
+    "universityId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -73,8 +80,8 @@ CREATE TABLE "ClubMember" (
     "userId" TEXT NOT NULL,
     "clubId" TEXT NOT NULL,
     "role" "ClubMemberRole" NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "leftAt" TIMESTAMP(3),
 
     CONSTRAINT "ClubMember_pkey" PRIMARY KEY ("id")
 );
@@ -120,7 +127,6 @@ CREATE TABLE "Application" (
 -- CreateTable
 CREATE TABLE "Attendance" (
     "id" TEXT NOT NULL,
-    "eventId" TEXT NOT NULL,
     "applicationId" TEXT NOT NULL,
     "status" "AttendanceStatus",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -133,6 +139,9 @@ CREATE TABLE "Attendance" (
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE INDEX "User_departmentId_idx" ON "User"("departmentId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "User_universityId_studentNumber_key" ON "User"("universityId", "studentNumber");
 
 -- CreateIndex
@@ -143,6 +152,12 @@ CREATE UNIQUE INDEX "Faculty_universityId_name_key" ON "Faculty"("universityId",
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Department_facultyId_name_key" ON "Department"("facultyId", "name");
+
+-- CreateIndex
+CREATE INDEX "Club_universityId_idx" ON "Club"("universityId");
+
+-- CreateIndex
+CREATE INDEX "ClubMember_clubId_leftAt_idx" ON "ClubMember"("clubId", "leftAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ClubMember_userId_clubId_key" ON "ClubMember"("userId", "clubId");
@@ -165,17 +180,20 @@ CREATE INDEX "Application_userId_eventId_idx" ON "Application"("userId", "eventI
 -- CreateIndex
 CREATE UNIQUE INDEX "Attendance_applicationId_key" ON "Attendance"("applicationId");
 
--- CreateIndex
-CREATE INDEX "Attendance_eventId_status_idx" ON "Attendance"("eventId", "status");
-
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_universityId_fkey" FOREIGN KEY ("universityId") REFERENCES "University"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Faculty" ADD CONSTRAINT "Faculty_universityId_fkey" FOREIGN KEY ("universityId") REFERENCES "University"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Department" ADD CONSTRAINT "Department_facultyId_fkey" FOREIGN KEY ("facultyId") REFERENCES "Faculty"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Club" ADD CONSTRAINT "Club_universityId_fkey" FOREIGN KEY ("universityId") REFERENCES "University"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ClubMember" ADD CONSTRAINT "ClubMember_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -194,9 +212,6 @@ ALTER TABLE "Application" ADD CONSTRAINT "Application_eventId_fkey" FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE "Application" ADD CONSTRAINT "Application_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Attendance" ADD CONSTRAINT "Attendance_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Attendance" ADD CONSTRAINT "Attendance_applicationId_fkey" FOREIGN KEY ("applicationId") REFERENCES "Application"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

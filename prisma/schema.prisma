@@ -8,28 +8,40 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
+  id            String     @id @default(uuid())
   universityId  String
-  email         String   @unique
+  departmentId  String
+  email         String     @unique
   firstName     String
   lastName      String
   studentNumber String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  systemRole    SystemRole @default(USER)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   university      University    @relation(fields: [universityId], references: [id])
+  department      Department    @relation(fields: [departmentId], references: [id])
   clubMemberships ClubMember[]
   applications    Application[]
   createdEvents   Event[]
 
   @@unique([universityId, studentNumber])
+  @@index([departmentId])
+}
+
+enum SystemRole {
+  USER
+  ADMIN
 }
 
 model University {
-  id        String    @id @default(uuid())
-  name      String    @unique
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
   faculties Faculty[]
   users     User[]
+  clubs     Club[]
 }
 
 model Faculty {
@@ -49,34 +61,39 @@ model Department {
   facultyId String
 
   faculty Faculty @relation(fields: [facultyId], references: [id])
+  users   User[]
 
   @@unique([facultyId, name])
 }
 
 model Club {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(uuid())
+  universityId String
+  name         String
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  members ClubMember[]
-  events  Event[]
+  university University   @relation(fields: [universityId], references: [id])
+  members    ClubMember[]
+  events     Event[]
+
+  @@index([universityId])
 }
 
 model ClubMember {
-  id        String         @id @default(uuid())
-  userId    String
-  clubId    String
-  role      ClubMemberRole
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id       String         @id @default(uuid())
+  userId   String
+  clubId   String
+  role     ClubMemberRole
+  joinedAt DateTime       @default(now())
+  leftAt   DateTime?
 
   user User @relation(fields: [userId], references: [id])
   club Club @relation(fields: [clubId], references: [id])
 
   @@unique([userId, clubId])
-  
+  @@index([clubId, leftAt])
 }
 
 enum ClubMemberRole {
@@ -114,7 +131,6 @@ model Event {
   club         Club          @relation(fields: [clubId], references: [id])
   createdBy    User          @relation(fields: [createdById], references: [id])
   applications Application[]
-  attendances  Attendance[]
 
   @@index([clubId, status])
   @@index([startAt])
@@ -166,17 +182,13 @@ enum ApplicationStatus {
 
 model Attendance {
   id            String            @id @default(uuid())
-  eventId       String
   applicationId String            @unique
   status        AttendanceStatus?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  event       Event       @relation(fields: [eventId], references: [id])
   application Application @relation(fields: [applicationId], references: [id])
-
-  @@index([eventId, status])
 }
 
 enum AttendanceStatus {

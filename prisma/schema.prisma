@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -10,4 +5,181 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(uuid())
+  universityId  String
+  email         String   @unique
+  firstName     String
+  lastName      String
+  studentNumber String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  university      University    @relation(fields: [universityId], references: [id])
+  clubMemberships ClubMember[]
+  applications    Application[]
+  createdEvents   Event[]
+
+  @@unique([universityId, studentNumber])
+}
+
+model University {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  faculties Faculty[]
+  users     User[]
+}
+
+model Faculty {
+  id           String @id @default(uuid())
+  name         String
+  universityId String
+
+  university  University   @relation(fields: [universityId], references: [id])
+  departments Department[]
+
+  @@unique([universityId, name])
+}
+
+model Department {
+  id        String @id @default(uuid())
+  name      String
+  facultyId String
+
+  faculty Faculty @relation(fields: [facultyId], references: [id])
+
+  @@unique([facultyId, name])
+}
+
+model Club {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members ClubMember[]
+  events  Event[]
+}
+
+model ClubMember {
+  id        String         @id @default(uuid())
+  userId    String
+  clubId    String
+  role      ClubMemberRole
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+  club Club @relation(fields: [clubId], references: [id])
+
+  @@unique([userId, clubId])
+  
+}
+
+enum ClubMemberRole {
+  PRESIDENT
+  VICE_PRESIDENT
+  MANAGER
+}
+
+model Event {
+  id          String @id @default(uuid())
+  clubId      String
+  createdById String
+
+  name        String
+  description String?
+  image       String?
+  eventType   EventType
+
+  startAt DateTime
+  endAt   DateTime
+
+  location   String?
+  onlineLink String?
+
+  applicationStartAt DateTime
+  applicationEndAt   DateTime
+  applicationType    ApplicationType
+  capacity           Int?
+
+  status EventStatus
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  club         Club          @relation(fields: [clubId], references: [id])
+  createdBy    User          @relation(fields: [createdById], references: [id])
+  applications Application[]
+  attendances  Attendance[]
+
+  @@index([clubId, status])
+  @@index([startAt])
+}
+
+enum EventType {
+  PHYSICAL
+  ONLINE
+}
+
+enum ApplicationType {
+  PUBLIC
+  APPROVAL_REQUIRED
+}
+
+enum EventStatus {
+  PUBLISHED
+  COMPLETED
+  CANCELLED
+}
+
+model Application {
+  id              String            @id @default(uuid())
+  eventId         String
+  userId          String
+  status          ApplicationStatus
+  appliedAt       DateTime          @default(now())
+  rejectionReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event      Event       @relation(fields: [eventId], references: [id])
+  user       User        @relation(fields: [userId], references: [id])
+  attendance Attendance?
+
+  @@index([eventId, status])
+  @@index([eventId, appliedAt])
+  @@index([userId, eventId])
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WAITLISTED
+  WITHDRAWN
+}
+
+model Attendance {
+  id            String            @id @default(uuid())
+  eventId       String
+  applicationId String            @unique
+  status        AttendanceStatus?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event       Event       @relation(fields: [eventId], references: [id])
+  application Application @relation(fields: [applicationId], references: [id])
+
+  @@index([eventId, status])
+}
+
+enum AttendanceStatus {
+  ATTENDED
+  NOT_ATTENDED
 }
